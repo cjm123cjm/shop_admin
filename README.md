@@ -165,9 +165,106 @@ import { MotionPlugin } from '@vueuse/motion'
 app.use(MotionPlugin)
 ```
 
+### 前端跨域配置
+
+打包上线后，就没有这个代理了
+
+vue.config.js
+
+```js
+module.exports = defineConfig({
+  //...
+  devServer: {
+    proxy: {
+      "/api": {
+        //匹配所有以'/api'开头的请求路径
+        target: process.env.VUE_APP_Proxy_Url, // 代理目标的基础路径
+        pathRewrite: { "^/api": "" }, // 代理往后端服务器的请求去掉/api前缀
+        ws: true, // WebSocket
+        changeOrigin: true,
+      },
+    },
+  },
+});
+```
 
 
 
+### Axios
+
+```js
+import axios from "axios";
+import store from "@/store";
+
+import useMessage from "@/hooks/useMessage.js";
+const ElMessage = useMessage();
+
+const request = axios.create({
+  baseURL: process.env.VUE_APP_URL,
+  timeout: 1000 * 60 * 5,
+});
+
+//请求拦截器
+request.interceptors.request.use(
+  (config) => {
+    var token = store.state.userStore.token;
+    if (token) {
+      config.headers.Authorization = token;
+    }
+    return config;
+  },
+  (err) => Promise.reject(err)
+);
+
+//响应拦截器
+request.interceptors.response.use(
+  (response) => {
+    if (response.data.code != 200) {
+      ElMessage({
+        showClose: true,
+        message: response.data.msg,
+        type: "错误",
+      });
+      return Promise.reject(response.data.msg);
+    } else {
+      return response.data;
+    }
+  },
+  (err) => Promise.reject(err)
+);
+
+export default request;
+
+```
+
+
+
+## 虚拟滚动条插件 nprogress.js
+
+https://github.com/rstacruz/nprogress
+
+useNProgress.js
+
+```js
+import NProgress from "nprogress";
+import "nprogress/nprogress.css";
+
+export default function useNProgress() {
+  NProgress.configure({
+    //动画方式
+    easing: "ease",
+    //递增进度条的速度
+    speed: 500,
+    //是否显示加载ico
+    showSpinner: false,
+    //自动递增间隔
+    trickleSpeed: 200,
+    //初始化时的最小百分比
+    minimum: 0.3,
+  });
+}
+
+```
 
 
 

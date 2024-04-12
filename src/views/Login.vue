@@ -108,7 +108,13 @@
 
 <script setup>
 import { reactive, ref } from "vue";
-import { login } from "@/api/user";
+import { useStore } from "vuex";
+import { useRouter } from "vue-router";
+const store = useStore();
+const router = useRouter();
+
+import useMessage from "@/hooks/useMessage.js";
+const ElMessage = useMessage();
 
 const loginFormRef = ref(null);
 
@@ -137,13 +143,39 @@ const btnLoading = ref(false);
 
 //登录
 const handleLogin = async () => {
-  if (loginForm.captchaSuccess) {
-    console.log(false);
-  }
-  try {
-    await login(loginForm);
-  } catch (error) {
-    console.log(error);
+  if (!loginForm.captchaSuccess) {
+    ElMessage({
+      showClose: true,
+      message: "滑动验证码未通过",
+      type: "error",
+    });
+  } else {
+    await loginFormRef.value.validate(async (valid) => {
+      if (valid) {
+        btnLoading.value = true;
+        //登录action
+        try {
+          await store.dispatch("userStore/loginAction", loginForm);
+          router.push("/");
+          ElMessage({
+            showClose: true,
+            message: "登陆成功",
+            type: "success",
+          });
+        } catch (error) {
+          console.log(error);
+        } finally {
+          btnLoading.value = false;
+        }
+      } else {
+        ElMessage({
+          showClose: true,
+          message: "表单验证未通过",
+          type: "error",
+        });
+        // console.log("error submit!", fields);
+      }
+    });
   }
 };
 </script>
